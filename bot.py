@@ -25,9 +25,6 @@ PRICE_PER_M2 = 80
 PRICE_PER_WINDOW = 400
 COMMISSION_RATE = 0.20
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
-
 users = {}
 orders_by_user = {}
 orders_by_id = {}
@@ -346,5 +343,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
