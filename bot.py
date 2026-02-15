@@ -9,22 +9,23 @@ from aiogram.types import (
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# ----------------- Настройки цен -----------------
+
+PRICE_PER_M2 = 100           # уборка квартиры
+PRICE_AFTER_REPAIR = 150     # уборка после ремонта
+PRICE_PER_WINDOW = 400       # мытьё окон
+COMMISSION_RATE = 0.20       # комиссия 20%
+
 ADMIN_IDS = [
     695804108,   # ты
     414880465    # второй админ
 ]
-
-PRICE_PER_M2 = 100
-PRICE_PER_WINDOW = 400
-PRICE_AFTER_REPAIR = 150
-COMMISSION_RATE = 0.20
 
 users = {}
 orders_by_user = {}
@@ -32,6 +33,8 @@ orders_by_id = {}
 user_messages = {}
 ORDER_SEQ = 1
 
+
+# ----------------- Вспомогательные функции -----------------
 
 def commission(price):
     return int(price * COMMISSION_RATE)
@@ -68,17 +71,17 @@ def save_msg(uid, mid):
     user_messages.setdefault(uid, []).append(mid)
 
 
-# ---------------- START ----------------
+# ----------------- /start -----------------
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
     kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="Уборка квартиры")],
-        [KeyboardButton(text="Мытьё окон")],
-        [KeyboardButton(text="Уборка квартиры + Мытьё окон")],
-        [KeyboardButton(text="Уборка после ремонта")]
-    ],
+        keyboard=[
+            [KeyboardButton(text="Уборка квартиры")],
+            [KeyboardButton(text="Мытьё окон")],
+            [KeyboardButton(text="Уборка квартиры + Мытьё окон")],
+            [KeyboardButton(text="Уборка после ремонта")]
+        ],
         resize_keyboard=True
     )
 
@@ -89,7 +92,7 @@ async def start(message: types.Message):
     save_msg(message.from_user.id, msg.message_id)
 
 
-# ---------------- МЕНЮ ----------------
+# ----------------- Меню -----------------
 
 @dp.message(F.text == "➕ Новая заявка")
 async def new_order(message: types.Message):
@@ -106,7 +109,6 @@ async def my_orders(message: types.Message):
         return
 
     text = "📋 Ваши заявки:\n\n"
-
     for i, order_id in enumerate(orders_by_user[uid], 1):
         o = orders_by_id[order_id]
         text += (
@@ -120,79 +122,70 @@ async def my_orders(message: types.Message):
     await message.answer(text, reply_markup=main_menu())
 
 
-# ---------------- ВЫБОР УСЛУГ ----------------
+# ----------------- Обработка выбора услуг -----------------
 
 @dp.message(F.text == "Уборка квартиры")
 async def clean(message: types.Message):
     users[message.from_user.id] = {"service": "Уборка квартиры", "step": "m2"}
-
     text = (
         "🧹 Уборка квартиры включает:\n"
-        "— влажную уборку полов\n"
-        "— уборку кухни\n"
-        "— уборку санузла\n"
+        "— влажную уборку всех комнат\n"
+        "— уборку кухни и санузла\n"
         "— протирку поверхностей\n\n"
+        f"💰 Стоимость: площадь × {PRICE_PER_M2} ₽\n\n"
         "Введите площадь квартиры в м²."
     )
-
     msg = await message.answer(text)
     save_msg(message.from_user.id, msg.message_id)
 
-@dp.message(F.text == "Уборка после ремонта")
-async def after_repair(message: types.Message):
-    users[message.from_user.id] = {
-        "service": "Уборка после ремонта",
-        "step": "m2_repair"
-    }
-
-    text = (
-        "🧱 Уборка после ремонта включает:\n"
-        "— удаление строительной пыли\n"
-        "— влажную уборку всех поверхностей\n"
-        "— уборку санузла и кухни\n"
-        "— протирку мебели и техники\n\n"
-        "💰 Стоимость считается так:\n"
-        "площадь × 150 ₽\n\n"
-        "Введите площадь квартиры в м²."
-    )
-
-    msg = await message.answer(text)
-    save_msg(message.from_user.id, msg.message_id)
 
 @dp.message(F.text == "Мытьё окон")
 async def windows(message: types.Message):
     users[message.from_user.id] = {"service": "Мытьё окон", "step": "windows"}
-
     text = (
         "🪟 Мытьё окон включает:\n"
-        "— мытьё стёкол с двух сторон\n"
-        "— мойку рам\n"
-        "— мойку подоконников\n\n"
+        "— мытьё стекол\n"
+        "— мытьё рам и подоконников\n\n"
+        f"💰 Стоимость: количество окон × {PRICE_PER_WINDOW} ₽\n\n"
         "Введите количество окон."
     )
-
     msg = await message.answer(text)
     save_msg(message.from_user.id, msg.message_id)
+
 
 @dp.message(F.text == "Уборка квартиры + Мытьё окон")
 async def combo(message: types.Message):
-    users[message.from_user.id] = {"service": "Уборка квартиры + Мытьё окон", "step": "m2"}
-
+    users[message.from_user.id] = {
+        "service": "Уборка квартиры + Мытьё окон",
+        "step": "m2"
+    }
     text = (
-        "🧹 Уборка квартиры + 🪟 мытьё окон включает:\n"
-        "— влажную уборку полов\n"
-        "— уборку кухни\n"
-        "— уборку санузла\n"
-        "— протирку поверхностей\n"
-        "— мытьё окон, рам и подоконников\n\n"
+        "🧹 + 🪟 Комплексная услуга включает:\n"
+        "— уборку квартиры\n"
+        "— мытьё окон\n\n"
+        f"💰 Стоимость: площадь × {PRICE_PER_M2} ₽ + окна × {PRICE_PER_WINDOW} ₽\n\n"
         "Введите площадь квартиры в м²."
     )
-
     msg = await message.answer(text)
     save_msg(message.from_user.id, msg.message_id)
 
 
-# ---------------- КОНТАКТ ----------------
+@dp.message(F.text == "Уборка после ремонта")
+async def after_repair(message: types.Message):
+    users[message.from_user.id] = {"service": "Уборка после ремонта", "step": "m2_repair"}
+    text = (
+        "🧱 Уборка после ремонта включает:\n"
+        "— удаление строительной пыли\n"
+        "— уборку всех поверхностей после ремонта\n"
+        "— уборку санузла и кухни\n\n"
+        f"💰 Стоимость: площадь × {PRICE_AFTER_REPAIR} ₽\n\n"
+        "Введите площадь квартиры в м²."
+    )
+    msg = await message.answer(text)
+    save_msg(message.from_user.id, msg.message_id)
+
+
+# ----------------- Сбор данных от пользователя -----------------
 
 @dp.message(F.contact)
 async def phone_handler(message: types.Message):
@@ -206,7 +199,6 @@ async def phone_handler(message: types.Message):
 
     data = users[uid]
     phone = message.contact.phone_number
-
     total = data["price"]
     com = commission(total)
 
@@ -264,8 +256,6 @@ async def phone_handler(message: types.Message):
     users.pop(uid, None)
 
 
-# ---------------- ШАГИ ----------------
-
 @dp.message(F.text)
 async def steps(message: types.Message):
     uid = message.from_user.id
@@ -276,27 +266,6 @@ async def steps(message: types.Message):
 
     data = users[uid]
     step = data["step"]
-    
-    if step == "m2_repair":
-    try:
-        m2 = int(message.text)
-        if m2 <= 0:
-            raise ValueError
-    except:
-        msg = await message.answer("Введите площадь числом.")
-        save_msg(uid, msg.message_id)
-        return
-
-    data["m2"] = m2
-    data["price"] = m2 * PRICE_AFTER_REPAIR
-
-    data["step"] = "address"
-    msg = await message.answer(
-        f"Стоимость: {data['price']} ₽\nВведите адрес."
-    )
-    save_msg(uid, msg.message_id)
-    return
-
 
     if step == "m2":
         try:
@@ -346,6 +315,24 @@ async def steps(message: types.Message):
         save_msg(uid, msg.message_id)
         return
 
+    if step == "m2_repair":
+        try:
+            m2 = int(message.text)
+            if m2 <= 0:
+                raise ValueError
+        except:
+            msg = await message.answer("Введите площадь числом.")
+            save_msg(uid, msg.message_id)
+            return
+
+        data["m2"] = m2
+        data["price"] = m2 * PRICE_AFTER_REPAIR
+
+        data["step"] = "address"
+        msg = await message.answer(f"Стоимость: {data['price']} ₽\nВведите адрес.")
+        save_msg(uid, msg.message_id)
+        return
+
     if step == "address":
         data["address"] = message.text
         data["step"] = "time"
@@ -371,7 +358,7 @@ async def steps(message: types.Message):
         return
 
 
-# ---------------- АДМИН-КНОПКИ ----------------
+# ----------------- Админ-кнопки -----------------
 
 @dp.callback_query(F.data.startswith("done:"))
 async def mark_done(call: types.CallbackQuery):
@@ -383,40 +370,5 @@ async def mark_done(call: types.CallbackQuery):
 
     order = orders_by_id.get(order_id)
     if not order:
-        await call.answer("Заявка не найдена")
-        return
 
-    order["status"] = "выполнено"
-    await call.message.edit_text(call.message.text + "\n\nСтатус: выполнено")
-    await call.answer("Отмечено как выполнено")
-
-
-@dp.callback_query(F.data.startswith("cancel:"))
-async def mark_cancel(call: types.CallbackQuery):
-    order_id = int(call.data.split(":")[1])
-
-    if call.from_user.id not in ADMIN_IDS:
-        await call.answer("Нет доступа", show_alert=True)
-        return
-
-    order = orders_by_id.get(order_id)
-    if not order:
-        await call.answer("Заявка не найдена")
-        return
-
-    order["status"] = "отменено"
-    await call.message.edit_text(call.message.text + "\n\nСтатус: отменено")
-    await call.answer("Отмечено как отменено")
-
-
-async def main():
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
-
-
+::contentReference[oaicite:0]{index=0}
