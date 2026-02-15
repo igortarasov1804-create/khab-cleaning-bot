@@ -1,13 +1,12 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types
+import os
+
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import (
-    ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
+    ReplyKeyboardMarkup, KeyboardButton,
     InlineKeyboardMarkup, InlineKeyboardButton
 )
-from aiogram import F
-
-import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -15,8 +14,7 @@ if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
 bot = Bot(token=BOT_TOKEN)
-
-
+dp = Dispatcher()
 
 ADMIN_IDS = [
     695804108,   # ты
@@ -348,4 +346,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
