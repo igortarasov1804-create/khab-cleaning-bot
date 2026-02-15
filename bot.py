@@ -123,21 +123,49 @@ async def my_orders(message: types.Message):
 @dp.message(F.text == "Уборка квартиры")
 async def clean(message: types.Message):
     users[message.from_user.id] = {"service": "Уборка квартиры", "step": "m2"}
-    msg = await message.answer("Введите площадь квартиры в м².")
-    save_msg(message.from_user.id, msg.message_id)
 
+    text = (
+        "🧹 Уборка квартиры включает:\n"
+        "— влажную уборку полов\n"
+        "— уборку кухни\n"
+        "— уборку санузла\n"
+        "— протирку поверхностей\n\n"
+        "Введите площадь квартиры в м²."
+    )
+
+    msg = await message.answer(text)
+    save_msg(message.from_user.id, msg.message_id)
 
 @dp.message(F.text == "Мытьё окон")
 async def windows(message: types.Message):
     users[message.from_user.id] = {"service": "Мытьё окон", "step": "windows"}
-    msg = await message.answer("Введите количество окон.")
-    save_msg(message.from_user.id, msg.message_id)
 
+    text = (
+        "🪟 Мытьё окон включает:\n"
+        "— мытьё стёкол с двух сторон\n"
+        "— мойку рам\n"
+        "— мойку подоконников\n\n"
+        "Введите количество окон."
+    )
+
+    msg = await message.answer(text)
+    save_msg(message.from_user.id, msg.message_id)
 
 @dp.message(F.text == "Уборка квартиры + Мытьё окон")
 async def combo(message: types.Message):
     users[message.from_user.id] = {"service": "Уборка квартиры + Мытьё окон", "step": "m2"}
-    msg = await message.answer("Введите площадь квартиры в м².")
+
+    text = (
+        "🧹 Уборка квартиры + 🪟 мытьё окон включает:\n"
+        "— влажную уборку полов\n"
+        "— уборку кухни\n"
+        "— уборку санузла\n"
+        "— протирку поверхностей\n"
+        "— мытьё окон, рам и подоконников\n\n"
+        "Введите площадь квартиры в м²."
+    )
+
+    msg = await message.answer(text)
     save_msg(message.from_user.id, msg.message_id)
 
 
@@ -343,6 +371,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
