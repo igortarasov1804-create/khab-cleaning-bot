@@ -21,8 +21,9 @@ ADMIN_IDS = [
     414880465    # второй админ
 ]
 
-PRICE_PER_M2 = 80
+PRICE_PER_M2 = 100
 PRICE_PER_WINDOW = 400
+PRICE_AFTER_REPAIR = 150
 COMMISSION_RATE = 0.20
 
 users = {}
@@ -72,11 +73,12 @@ def save_msg(uid, mid):
 @dp.message(Command("start"))
 async def start(message: types.Message):
     kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Уборка квартиры")],
-            [KeyboardButton(text="Мытьё окон")],
-            [KeyboardButton(text="Уборка квартиры + Мытьё окон")]
-        ],
+    keyboard=[
+        [KeyboardButton(text="Уборка квартиры")],
+        [KeyboardButton(text="Мытьё окон")],
+        [KeyboardButton(text="Уборка квартиры + Мытьё окон")],
+        [KeyboardButton(text="Уборка после ремонта")]
+    ],
         resize_keyboard=True
     )
 
@@ -130,6 +132,27 @@ async def clean(message: types.Message):
         "— уборку кухни\n"
         "— уборку санузла\n"
         "— протирку поверхностей\n\n"
+        "Введите площадь квартиры в м²."
+    )
+
+    msg = await message.answer(text)
+    save_msg(message.from_user.id, msg.message_id)
+
+@dp.message(F.text == "Уборка после ремонта")
+async def after_repair(message: types.Message):
+    users[message.from_user.id] = {
+        "service": "Уборка после ремонта",
+        "step": "m2_repair"
+    }
+
+    text = (
+        "🧱 Уборка после ремонта включает:\n"
+        "— удаление строительной пыли\n"
+        "— влажную уборку всех поверхностей\n"
+        "— уборку санузла и кухни\n"
+        "— протирку мебели и техники\n\n"
+        "💰 Стоимость считается так:\n"
+        "площадь × 150 ₽\n\n"
         "Введите площадь квартиры в м²."
     )
 
@@ -253,6 +276,27 @@ async def steps(message: types.Message):
 
     data = users[uid]
     step = data["step"]
+    
+    if step == "m2_repair":
+    try:
+        m2 = int(message.text)
+        if m2 <= 0:
+            raise ValueError
+    except:
+        msg = await message.answer("Введите площадь числом.")
+        save_msg(uid, msg.message_id)
+        return
+
+    data["m2"] = m2
+    data["price"] = m2 * PRICE_AFTER_REPAIR
+
+    data["step"] = "address"
+    msg = await message.answer(
+        f"Стоимость: {data['price']} ₽\nВведите адрес."
+    )
+    save_msg(uid, msg.message_id)
+    return
+
 
     if step == "m2":
         try:
@@ -371,6 +415,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
