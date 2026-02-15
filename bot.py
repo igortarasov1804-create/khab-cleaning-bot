@@ -370,5 +370,45 @@ async def mark_done(call: types.CallbackQuery):
 
     order = orders_by_id.get(order_id)
     if not order:
+        await call.answer("Заявка не найдена", show_alert=True)
+        return
 
-::contentReference[oaicite:0]{index=0}
+    order["status"] = "выполнено"
+
+    await call.message.edit_text(
+        call.message.text + "\n\n✅ Статус: выполнено"
+    )
+    await call.answer("Готово")
+
+
+@dp.callback_query(F.data.startswith("cancel:"))
+async def mark_cancel(call: types.CallbackQuery):
+    order_id = int(call.data.split(":")[1])
+
+    if call.from_user.id not in ADMIN_IDS:
+        await call.answer("Нет доступа", show_alert=True)
+        return
+
+    order = orders_by_id.get(order_id)
+    if not order:
+        await call.answer("Заявка не найдена", show_alert=True)
+        return
+
+    order["status"] = "отменено"
+
+    await call.message.edit_text(
+        call.message.text + "\n\n❌ Статус: отменено"
+    )
+    await call.answer("Отменено")
+
+
+# ----------------- Запуск -----------------
+
+async def main():
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
