@@ -6,9 +6,16 @@ from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton
 )
 from aiogram import F
+
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN is not set")
+
+bot = Bot(token=BOT_TOKEN)
+
 
 
 ADMIN_IDS = [
@@ -341,3 +348,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
